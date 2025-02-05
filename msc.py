@@ -83,16 +83,24 @@ class Parser:
                 "symbol": self.consume()[0]
             }
         elif typ == "num":
+            if self.peek() and self.peek()[1] == "op":
+                return self.parse_binop()
             # just make literal
+            return self.parse_primary()
+
+        return self.parse_primary()
+
+    def parse_primary(self):
+        typ = self.cur[1]
+
+        if typ == "num":
             return {
                 "kind": "NumericLiteral",
                 "value": int(self.consume()[0])
             }
-        else:
-            raise SyntaxError(f"Unknown token: {self.cur[1]}")
 
     def parse_var_dec(self):
-        var_name = self.consume()
+        var_name = self.consume()[0]
         # we already checked for an eq
         self.consume()
 
@@ -105,8 +113,23 @@ class Parser:
             "init": init
         }
 
+    def parse_binop(self):
+        expr = self.parse_primary()
 
-toks = tokenize("hello = 1")
+        while self.cur[1] == "op":
+            op = self.consume()
+            right = self.parse_primary()
+            expr = {
+                "kind": "binop",
+                "left": expr,
+                "op": op[0],
+                "right": right
+            }
+
+        return expr
+
+
+toks = tokenize("hello = 1 + 1")
 print(toks)
 parser = Parser(toks)
 ast = parser.parse()
